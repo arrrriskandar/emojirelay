@@ -5,7 +5,7 @@ import {
   registerGameEvents,
   unregisterGameEvents,
   sendMessage,
-} from "../socket/events";
+} from "../utils/socketEvents";
 import { VStack, Box, Input, Button, Text } from "@chakra-ui/react";
 import EmojiPicker from "emoji-picker-react";
 

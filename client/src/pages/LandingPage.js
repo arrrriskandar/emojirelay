@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
-import { createRoom } from "../socket/events";
+import { createRoom } from "../utils/socketEvents";
 import TextInput from "../components/TextInput";
 
 const LandingPage = () => {

@@ -3,8 +3,16 @@ export const createRoom = (socket, playerName, onSuccess, onError) => {
 
   socket.emit("createRoom", { playerName });
 
-  // Use `once` to listen only once per call
   socket.once("roomCreated", onSuccess);
+  socket.once("error", onError);
+};
+
+export const getRoom = (socket, roomId, onSuccess, onError) => {
+  if (!socket) return;
+
+  socket.emit("getRoom", { roomId });
+
+  socket.once("roomData", onSuccess);
   socket.once("error", onError);
 };
 

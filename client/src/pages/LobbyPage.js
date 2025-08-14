@@ -7,7 +7,7 @@ import {
   registerLobbyEvents,
   unregisterLobbyEvents,
   startGame,
-} from "../socket/events";
+} from "../utils/socketEvents";
 
 const Lobby = () => {
   const { roomId } = useParams();

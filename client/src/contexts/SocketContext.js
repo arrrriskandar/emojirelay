@@ -1,16 +1,23 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState, useContext, useRef } from "react";
 import { io } from "socket.io-client";
+import getPlayerId from "../utils/getPlayerId";
 
-const SocketContext = createContext(null);
+export const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
+  const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const newSocket = io("http://localhost:4000");
-    setSocket(newSocket);
+    const playerId = getPlayerId();
 
-    return () => newSocket.disconnect();
+    const socketInstance = io("http://localhost:4000", {
+      query: { playerId },
+    });
+    socketRef.current = socketInstance;
+    setSocket(socketInstance);
+
+    return () => socketInstance.disconnect();
   }, []);
 
   return (

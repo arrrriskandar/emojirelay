@@ -7,25 +7,26 @@ const generateUniqueRoomId = async () => {
   let id;
   do {
     id = nanoid(6); // or your preferred length
-  } while (await redisClient.exists("room:" + id));
+  } while (await redisClient.exists(ROOM_PREFIX + id));
   return id;
 };
 
-export const createRoom = async (creatorId, creatorName) => {
+export const createRoom = async (playerId, creatorName) => {
   const roomId = await generateUniqueRoomId();
 
   const room = {
     id: roomId,
-    creatorId,
-    players: [{ id: creatorId, name: creatorName }],
+    creatorId: playerId,
+    players: [{ id: playerId, name: creatorName }],
     gameStarted: false,
+    messages: [],
   };
 
   await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
   return room;
 };
 
-const getRoom = async (roomId) => {
+export const getRoom = async (roomId) => {
   const data = await redisClient.get(ROOM_PREFIX + roomId);
   return data ? JSON.parse(data) : null;
 };
@@ -90,16 +91,17 @@ export const startGame = async (roomId, playerId) => {
   return room;
 };
 
-export const getMessages = (roomId) => {
-  const room = getRoom(roomId);
+export const getMessages = async (roomId) => {
+  const room = await getRoom(roomId);
   return room ? room.messages || [] : [];
 };
 
-export const addMessage = (roomId, message) => {
-  const room = getRoom(roomId);
+export const addMessage = async (roomId, message) => {
+  const room = await getRoom(roomId);
   if (!room) return null;
   room.messages = room.messages || [];
   const msgObj = { ...message, timestamp: Date.now() };
   room.messages.push(msgObj);
+  await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
   return msgObj;
 };
