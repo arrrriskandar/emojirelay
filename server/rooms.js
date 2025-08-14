@@ -22,7 +22,9 @@ export const createRoom = async (playerId, creatorName) => {
     messages: [],
   };
 
-  await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
+  await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room), {
+    EX: 7200,
+  });
   return room;
 };
 
