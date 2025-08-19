@@ -7,24 +7,31 @@ import {
   startGame,
 } from "../utils/socketEvents";
 import { useRoom } from "../contexts/RoomContext";
+import {
+  VStack,
+  Box,
+  Heading,
+  Text,
+  Button,
+  List,
+  ListItem,
+  useToast,
+} from "@chakra-ui/react";
 
 const LobbyPage = () => {
   const navigate = useNavigate();
   const { socket, playerId } = useSocket();
-  const { room, setRoom, playerName } = useRoom();
+  const { room, setRoom } = useRoom();
+  const toast = useToast();
 
   useEffect(() => {
     registerLobbyEvents(socket, {
-      onLobbyUpdate: (room) => {
-        setRoom(room);
-      },
-      onGameStarted: () => {
-        navigate("/game");
-      },
+      onLobbyUpdate: (room) => setRoom(room),
+      onGameStarted: () => navigate("/game"),
     });
 
     return () => unregisterLobbyEvents(socket);
-  }, [room, playerName, navigate, socket, setRoom]);
+  }, [navigate, socket, setRoom]);
 
   const handleStartGame = () => {
     startGame(socket, room.id);
@@ -32,46 +39,85 @@ const LobbyPage = () => {
   };
 
   const handleCopy = async () => {
+    const link = `${window.location.origin}/join/${room.id}`;
     try {
       await navigator.clipboard.writeText(link);
-      alert("Link copied!"); // optional feedback
+      toast({
+        title: "Link copied!",
+        description: "You can now share this link with others.",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+        position: "top",
+      });
     } catch (err) {
       console.error("Failed to copy!", err);
+      toast({
+        title: "Error",
+        description: "Failed to copy the link.",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+        position: "top",
+      });
     }
   };
 
-  if (!room) {
-    return <p>Loading room...</p>; // or a spinner
-  }
+  if (!room) return <Text>Loading room...</Text>;
+
   const link = `${window.location.origin}/join/${room.id}`;
+
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Room: {room.id}</h2>
-      <h3>Players waiting:</h3>
-      <ul>
-        {room.players.map((p) => (
-          <li key={p.id}>{p.name}</li>
-        ))}
-      </ul>
+    <VStack spacing={6} p={6} align="center" w="100%" maxW="500px" mx="auto">
+      <Heading size="xl" color="teal.300">
+        Lobby
+      </Heading>
 
-      {room.creatorId === playerId && !room.gameStarted && (
-        <button onClick={handleStartGame}>Start Game</button>
-      )}
+      <Box w="100%" p={6} borderRadius="md" shadow="md" bg="gray.700">
+        <Text fontWeight="bold" mb={2}>
+          Room ID:{" "}
+          <Text as="span" color="teal.300">
+            {room.id}
+          </Text>
+        </Text>
 
-      {room.gameStarted && <p>Game has started!</p>}
-      <p>
-        <span
-          onClick={handleCopy}
-          style={{
-            color: "teal",
-            textDecoration: "underline",
-            cursor: "pointer",
-          }}
-        >
-          {link}
-        </span>
-      </p>
-    </div>
+        <Text fontWeight="bold" mb={2}>
+          Players waiting:
+        </Text>
+        <List spacing={2} mb={4}>
+          {room.players.map((p) => (
+            <ListItem key={p.id} pl={2}>
+              • {p.name} {p.id === room.creatorId && "(Host)"}
+            </ListItem>
+          ))}
+        </List>
+
+        {room.creatorId === playerId && !room.gameStarted && (
+          <Button colorScheme="teal" mb={4} onClick={handleStartGame} w="100%">
+            Start Game
+          </Button>
+        )}
+
+        {room.gameStarted && (
+          <Text color="green.300" mb={4}>
+            Game has started!
+          </Text>
+        )}
+
+        <Text>
+          Invite others:{" "}
+          <Text
+            as="span"
+            color="teal.300"
+            textDecoration="underline"
+            cursor="pointer"
+            onClick={handleCopy}
+          >
+            {link}
+          </Text>
+        </Text>
+      </Box>
+    </VStack>
   );
 };
 
