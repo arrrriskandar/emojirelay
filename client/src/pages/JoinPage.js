@@ -1,26 +1,28 @@
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
-import { createRoom } from "../utils/socketEvents";
+import { joinRoom, registerLobbyEvents } from "../utils/socketEvents";
 import TextInput from "../components/TextInput";
 import { useRoom } from "../contexts/RoomContext";
+import { useParams } from "react-router-dom";
 
-const LandingPage = () => {
+const JoinPage = () => {
+  const { roomId } = useParams();
   const navigate = useNavigate();
   const { socket } = useSocket();
   const { setPlayerName, setRoom } = useRoom();
   const handleCreate = (name) => {
-    createRoom(
-      socket,
-      name,
-      (room) => {
-        setRoom(room);
+    joinRoom(socket, { roomId, playerName: name });
+    registerLobbyEvents(socket, {
+      onLobbyUpdate: (room) => {
         setPlayerName(name);
-        navigate("/lobby");
+        setRoom(room);
       },
-      (msg) => {
-        alert("Error creating room: " + msg);
-      }
-    );
+      onGameStarted: () => {
+        navigate("/");
+        alert("Game has started!");
+      },
+    });
+    navigate("/lobby");
   };
 
   return (
@@ -35,4 +37,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage;
+export default JoinPage;

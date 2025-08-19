@@ -7,10 +7,10 @@ export const SocketContext = createContext();
 export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
+  const playerId = getPlayerId();
 
   useEffect(() => {
-    const playerId = getPlayerId();
-
+    if (!playerId) return;
     const socketInstance = io("http://localhost:4000", {
       query: { playerId },
     });
@@ -18,10 +18,12 @@ export const SocketProvider = ({ children }) => {
     setSocket(socketInstance);
 
     return () => socketInstance.disconnect();
-  }, []);
+  }, [playerId]);
 
   return (
-    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
+    <SocketContext.Provider value={{ socket, playerId }}>
+      {children}
+    </SocketContext.Provider>
   );
 };
 

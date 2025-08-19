@@ -2,6 +2,7 @@ import redisClient from "./redisClient.js";
 import { nanoid } from "nanoid";
 
 const ROOM_PREFIX = "room:";
+const PLAYER_PREFIX = "player:";
 
 const generateUniqueRoomId = async () => {
   let id;
@@ -22,15 +23,20 @@ export const createRoom = async (playerId, creatorName) => {
     messages: [],
   };
 
-  await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room), {
-    EX: 7200,
-  });
+  await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
+  await redisClient.set(PLAYER_PREFIX + playerId, roomId);
   return room;
 };
 
-export const getRoom = async (roomId) => {
+const getRoom = async (roomId) => {
   const data = await redisClient.get(ROOM_PREFIX + roomId);
   return data ? JSON.parse(data) : null;
+};
+
+export const getRoomByPlayerId = async (playerId) => {
+  const roomId = await redisClient.get(PLAYER_PREFIX + playerId);
+  if (!roomId) return null;
+  return getRoom(roomId);
 };
 
 export const joinRoom = async (roomId, playerId, playerName) => {
@@ -41,6 +47,7 @@ export const joinRoom = async (roomId, playerId, playerName) => {
   if (!room.players.find((p) => p.id === playerId)) {
     room.players.push({ id: playerId, name: playerName });
     await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
+    await redisClient.set(PLAYER_PREFIX + playerId, roomId);
   }
   return room;
 };

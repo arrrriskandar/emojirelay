@@ -2,6 +2,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ChakraProvider, extendTheme } from "@chakra-ui/react";
+import { RoomProvider } from "./contexts/RoomContext";
 
 const theme = extendTheme({
   config: {
@@ -14,7 +15,9 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <ChakraProvider theme={theme}>
     <SocketProvider>
-      <App />
+      <RoomProvider>
+        <App />
+      </RoomProvider>
     </SocketProvider>
   </ChakraProvider>
 );

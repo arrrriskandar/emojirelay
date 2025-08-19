@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import {
   registerGameEvents,
@@ -8,19 +7,32 @@ import {
 } from "../utils/socketEvents";
 import { VStack, Box, Input, Button, Text } from "@chakra-ui/react";
 import EmojiPicker from "emoji-picker-react";
+import { useRoom } from "../contexts/RoomContext";
 
 const GamePage = () => {
-  const { roomId } = useParams();
-  const location = useLocation();
-  const socket = useSocket();
-
-  const playerName = location.state?.playerName || "";
-  const [message, setMessage] = useState("");
+  const { room, playerName } = useRoom();
+  const { socket } = useSocket();
   const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState("");
   const [showPicker, setShowPicker] = useState(false);
 
+  const messagesEndRef = useRef(null);
+
+  // Scroll to bottom when messages update
   useEffect(() => {
-    if (!playerName) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Sync messages with room.messages when room updates
+  useEffect(() => {
+    if (room?.messages) {
+      setMessages(room.messages);
+    }
+  }, [room]);
+
+  // Register socket events
+  useEffect(() => {
+    if (!socket) return;
 
     registerGameEvents(socket, {
       onNewMessage: (msg) => setMessages((prev) => [...prev, msg]),
@@ -28,13 +40,13 @@ const GamePage = () => {
     });
 
     return () => unregisterGameEvents(socket);
-  }, [socket, playerName]);
+  }, [socket]);
 
   const handleSend = () => {
-    if (!message.trim()) return;
+    if (!message.trim() || !room) return;
 
     const msgObj = { playerName, content: message };
-    sendMessage(socket, roomId, msgObj);
+    sendMessage(socket, room.id, msgObj);
     setMessage("");
   };
 
@@ -43,12 +55,14 @@ const GamePage = () => {
   };
 
   const handleEmojiClick = (emojiData, event) => {
-    // emojiData.emoji contains the emoji character
     setMessage((prev) => prev + emojiData.emoji);
   };
 
+  if (!room) return <p>Loading room...</p>;
+
   return (
     <VStack spacing={4} p={4} align="stretch">
+      {/* Chat box */}
       <Box
         border="1px solid gray"
         borderRadius="md"
@@ -62,9 +76,11 @@ const GamePage = () => {
             {msg.content}
           </Text>
         ))}
+        <div ref={messagesEndRef} />
       </Box>
 
-      <Box>
+      {/* Input + emoji picker */}
+      <Box display="flex" alignItems="center">
         <Input
           placeholder="Type your message or emoji..."
           value={message}
@@ -72,7 +88,7 @@ const GamePage = () => {
           onKeyDown={handleEnter}
         />
         <Button onClick={() => setShowPicker((prev) => !prev)} ml={2}>
-          {showPicker ? "Close Picker" : "Emoji"}
+          {showPicker ? "Close" : "Emoji"}
         </Button>
         <Button onClick={handleSend} ml={2} colorScheme="blue">
           Send

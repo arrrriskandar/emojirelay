@@ -5,7 +5,7 @@ import {
   startGame,
   addMessage,
   getMessages,
-  getRoom,
+  getRoomByPlayerId,
 } from "./rooms.js";
 
 const setupSocketHandlers = (io) => {
@@ -17,16 +17,16 @@ const setupSocketHandlers = (io) => {
       try {
         const room = await createRoom(playerId, playerName);
         socket.join(room.id);
-        socket.emit("roomCreated", { roomId: room.id });
+        socket.emit("roomCreated", room);
         io.to(room.id).emit("lobbyUpdate", room);
       } catch (e) {
         socket.emit("error", e.message);
       }
     });
 
-    socket.on("getRoom", async ({ roomId }) => {
+    socket.on("getRoomByPlayerId", async ({ playerId }) => {
       try {
-        const room = await getRoom(roomId);
+        const room = await getRoomByPlayerId(playerId);
         if (!room) {
           socket.emit("error", "Room not found");
           return;
@@ -45,7 +45,7 @@ const setupSocketHandlers = (io) => {
           return;
         }
         socket.join(roomId);
-        const messages = getMessages(roomId);
+        const messages = await getMessages(roomId);
         socket.emit("chatHistory", messages);
         io.to(roomId).emit("lobbyUpdate", room);
       } catch (e) {
@@ -53,28 +53,28 @@ const setupSocketHandlers = (io) => {
       }
     });
 
-    socket.on("sendMessage", ({ roomId, message }) => {
-      const msgObj = addMessage(roomId, message);
+    socket.on("sendMessage", async ({ roomId, message }) => {
+      const msgObj = await addMessage(roomId, message);
       if (!msgObj) return;
       io.to(roomId).emit("newMessage", msgObj);
     });
 
     socket.on("startGame", async ({ roomId }) => {
       try {
-        const room = await startGame(roomId, playerId);
+        await startGame(roomId, playerId);
         io.to(roomId).emit("gameStarted");
       } catch (e) {
         socket.emit("error", e.message);
       }
     });
 
-    socket.on("disconnect", async () => {
-      const room = await leaveRoom(playerId);
-      if (room) {
-        io.to(room.id).emit("lobbyUpdate", room);
-      }
-      console.log(`Player disconnected: ${playerId}`);
-    });
+    // socket.on("disconnect", async () => {
+    //   const room = await leaveRoom(playerId);
+    //   if (room) {
+    //     io.to(room.id).emit("lobbyUpdate", room);
+    //   }
+    //   console.log(`Player disconnected: ${playerId}`);
+    // });
   });
 };
 

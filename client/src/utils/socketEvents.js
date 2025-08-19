@@ -3,17 +3,17 @@ export const createRoom = (socket, playerName, onSuccess, onError) => {
 
   socket.emit("createRoom", { playerName });
 
-  socket.once("roomCreated", onSuccess);
-  socket.once("error", onError);
+  if (onSuccess) socket.once("roomCreated", onSuccess);
+  if (onError) socket.once("error", onError);
 };
 
-export const getRoom = (socket, roomId, onSuccess, onError) => {
+export const getRoomByPlayerId = (socket, playerId, onSuccess, onError) => {
   if (!socket) return;
 
-  socket.emit("getRoom", { roomId });
+  socket.emit("getRoomByPlayerId", { playerId });
 
-  socket.once("roomData", onSuccess);
-  socket.once("error", onError);
+  if (onSuccess) socket.once("roomData", onSuccess);
+  if (onError) socket.once("error", onError);
 };
 
 export const joinRoom = (socket, { roomId, playerName }) => {
@@ -27,8 +27,8 @@ export const registerLobbyEvents = (
 ) => {
   if (!socket) return;
 
-  socket.on("lobbyUpdate", onLobbyUpdate);
-  socket.on("gameStarted", onGameStarted);
+  if (onLobbyUpdate) socket.on("lobbyUpdate", onLobbyUpdate);
+  if (onGameStarted) socket.on("gameStarted", onGameStarted);
 };
 
 export const unregisterLobbyEvents = (socket) => {
@@ -45,8 +45,8 @@ export const startGame = (socket, roomId) => {
 
 export const registerGameEvents = (socket, { onNewMessage, onChatHistory }) => {
   if (!socket) return;
-  socket.on("newMessage", onNewMessage);
-  socket.on("chatHistory", onChatHistory);
+  if (onNewMessage) socket.on("newMessage", onNewMessage);
+  if (onChatHistory) socket.on("chatHistory", onChatHistory);
 };
 
 export const unregisterGameEvents = (socket) => {
