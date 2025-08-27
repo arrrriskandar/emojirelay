@@ -1,13 +1,19 @@
 import { useState } from "react";
 import { VStack, Input, Button } from "@chakra-ui/react";
 import { useToast } from "../contexts/ToastContext";
-const UsernameInput = ({ buttonText, onSubmit }) => {
+const TextInput = ({
+  buttonText,
+  onSubmit,
+  placeholderText,
+  errorTitle,
+  errorDescription,
+}) => {
   const [value, setValue] = useState("");
   const { addToast } = useToast();
 
   const handleSubmit = () => {
     if (!value.trim()) {
-      addToast("Username required", "Please enter a username", "warning");
+      addToast(errorTitle, errorDescription, "warning");
       return;
     }
     onSubmit(value.trim());
@@ -21,7 +27,7 @@ const UsernameInput = ({ buttonText, onSubmit }) => {
   return (
     <VStack spacing={4} w="100%">
       <Input
-        placeholder={"Please enter a username"}
+        placeholder={placeholderText}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleEnter}
@@ -34,4 +40,4 @@ const UsernameInput = ({ buttonText, onSubmit }) => {
   );
 };
 
-export default UsernameInput;
+export default TextInput;

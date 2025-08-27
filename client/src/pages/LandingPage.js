@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
 import { createRoom } from "../utils/socketEvents";
-import UsernameInput from "../components/UsernameInput";
+import TextInput from "../components/TextInput";
 import { VStack, Heading, Box } from "@chakra-ui/react";
 import { useToast } from "../contexts/ToastContext";
 
@@ -33,7 +33,13 @@ const LandingPage = () => {
         Emoji Relay
       </Heading>
       <Box w={{ base: "90%", sm: "400px" }} textAlign="center">
-        <UsernameInput buttonText="Create Game" onSubmit={handleCreate} />
+        <TextInput
+          buttonText="Create Game"
+          onSubmit={handleCreate}
+          placeholderText={"Please enter a username"}
+          errorTitle={"Username required"}
+          errorDescription={"Please enter a username"}
+        />
       </Box>
     </VStack>
   );
