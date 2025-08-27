@@ -1,37 +1,27 @@
 import {
   createRoom,
   joinRoom,
-  leaveRoom,
+  removeFromRoom,
   startGame,
-  addMessage,
-  getMessages,
   getRoomByPlayerId,
+  getRoom,
+  deleteRoom,
+  createPlayerIdMapping,
 } from "./rooms.js";
 
 const setupSocketHandlers = (io) => {
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     const playerId = socket.handshake.query.playerId;
+    if (!playerId) return;
+    await createPlayerIdMapping(socket.id, playerId);
     console.log(`Player connected: ${playerId} (socket: ${socket.id})`);
 
     socket.on("createRoom", async ({ playerName }) => {
       try {
         const room = await createRoom(playerId, playerName);
         socket.join(room.id);
-        socket.emit("roomCreated", room);
+        socket.emit("roomCreated");
         io.to(room.id).emit("lobbyUpdate", room);
-      } catch (e) {
-        socket.emit("error", e.message);
-      }
-    });
-
-    socket.on("getRoomByPlayerId", async ({ playerId }) => {
-      try {
-        const room = await getRoomByPlayerId(playerId);
-        if (!room) {
-          socket.emit("error", "Room not found");
-          return;
-        }
-        socket.emit("roomData", room);
       } catch (e) {
         socket.emit("error", e.message);
       }
@@ -45,36 +35,71 @@ const setupSocketHandlers = (io) => {
           return;
         }
         socket.join(roomId);
-        const messages = await getMessages(roomId);
-        socket.emit("chatHistory", messages);
+        socket.emit("roomJoined", "Room joined successfully");
         io.to(roomId).emit("lobbyUpdate", room);
       } catch (e) {
         socket.emit("error", e.message);
       }
     });
 
-    socket.on("sendMessage", async ({ roomId, message }) => {
-      const msgObj = await addMessage(roomId, message);
-      if (!msgObj) return;
-      io.to(roomId).emit("newMessage", msgObj);
+    socket.on("checkRoomExists", async ({ roomId }, callback) => {
+      const room = await getRoom(roomId);
+      callback(!!room); // true if room exists, false otherwise
     });
 
-    socket.on("startGame", async ({ roomId }) => {
+    socket.on("getRoomByPlayerId", async () => {
       try {
-        await startGame(roomId, playerId);
+        const room = await getRoomByPlayerId(playerId);
+        if (!room) {
+          return;
+        }
+        socket.join(room.id);
+        socket.emit("roomData", room);
+      } catch (e) {
+        socket.emit("error", e.message);
+      }
+    });
+
+    socket.on("startGame", async ({ roomId, mode }) => {
+      try {
+        const room = await startGame(roomId, playerId, mode);
+        io.to(roomId).emit("lobbyUpdate", room);
         io.to(roomId).emit("gameStarted");
       } catch (e) {
         socket.emit("error", e.message);
       }
     });
 
-    // socket.on("disconnect", async () => {
-    //   const room = await leaveRoom(playerId);
-    //   if (room) {
-    //     io.to(room.id).emit("lobbyUpdate", room);
-    //   }
-    //   console.log(`Player disconnected: ${playerId}`);
-    // });
+    socket.on("removeFromRoom", async ({ roomId, playerIdToRemove }) => {
+      const result = await removeFromRoom(playerId, roomId, playerIdToRemove);
+      if (result.success && result.room) {
+        const removedSocket = io.sockets.sockets.get(result.removedSocketId);
+        if (removedSocket) {
+          removedSocket.leave(roomId);
+          removedSocket.emit("removedFromRoom", roomId);
+        }
+        io.to(roomId).emit("lobbyUpdate", result.room);
+      } else {
+        socket.emit("error", result.message);
+      }
+    });
+
+    socket.on("deleteRoom", async ({ roomId }) => {
+      const result = await deleteRoom(playerId, roomId);
+
+      if (result.success) {
+        io.to(roomId).emit("roomDeleted", roomId);
+        const roomSockets = io.sockets.adapter.rooms.get(roomId);
+        if (roomSockets) {
+          for (const sockId of roomSockets) {
+            const sock = io.sockets.sockets.get(sockId);
+            if (sock) sock.leave(roomId);
+          }
+        }
+      } else {
+        socket.emit("error", result.message);
+      }
+    });
   });
 };
 

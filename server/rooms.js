@@ -1,8 +1,9 @@
 import redisClient from "./redisClient.js";
 import { nanoid } from "nanoid";
 
-const ROOM_PREFIX = "room:";
-const PLAYER_PREFIX = "player:";
+const ROOM_PREFIX = "ROOM:";
+const PLAYER_ROOM = "PLAYER_ROOM:";
+const PLAYER_SOCKET = "PLAYER_SOCKET:";
 
 const generateUniqueRoomId = async () => {
   let id;
@@ -20,21 +21,22 @@ export const createRoom = async (playerId, creatorName) => {
     creatorId: playerId,
     players: [{ id: playerId, name: creatorName }],
     gameStarted: false,
-    messages: [],
+    rounds: [],
+    settings: { mode: "relaxed" },
   };
 
   await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
-  await redisClient.set(PLAYER_PREFIX + playerId, roomId);
+  await redisClient.set(PLAYER_ROOM + playerId, roomId);
   return room;
 };
 
-const getRoom = async (roomId) => {
+export const getRoom = async (roomId) => {
   const data = await redisClient.get(ROOM_PREFIX + roomId);
   return data ? JSON.parse(data) : null;
 };
 
 export const getRoomByPlayerId = async (playerId) => {
-  const roomId = await redisClient.get(PLAYER_PREFIX + playerId);
+  const roomId = await redisClient.get(PLAYER_ROOM + playerId);
   if (!roomId) return null;
   return getRoom(roomId);
 };
@@ -47,48 +49,58 @@ export const joinRoom = async (roomId, playerId, playerName) => {
   if (!room.players.find((p) => p.id === playerId)) {
     room.players.push({ id: playerId, name: playerName });
     await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
-    await redisClient.set(PLAYER_PREFIX + playerId, roomId);
+    await redisClient.set(PLAYER_ROOM + playerId, roomId);
   }
   return room;
 };
 
-export const leaveRoom = async (playerId) => {
-  // Find the room where the player is in
-  const keys = await redisClient.keys(ROOM_PREFIX + "*");
-
-  for (const key of keys) {
-    const data = await redisClient.get(key);
-    if (!data) continue;
-    const room = JSON.parse(data);
-
-    const playerIndex = room.players.findIndex((p) => p.id === playerId);
-    if (playerIndex !== -1) {
-      room.players.splice(playerIndex, 1);
-
-      // If creator left, assign new creator if players remain
-      if (room.creatorId === playerId) {
-        if (room.players.length > 0) {
-          room.creatorId = room.players[0].id;
-        } else {
-          // No players left, delete room
-          await redisClient.del(key);
-          return null;
-        }
-      }
-
-      if (room.players.length === 0) {
-        await redisClient.del(key);
-        return null;
-      }
-
-      await redisClient.set(key, JSON.stringify(room));
-      return room;
-    }
+export const removeFromRoom = async (playerId, roomId, playerIdToRemove) => {
+  const room = await getRoom(roomId);
+  if (!room) return { success: false, message: "Room not found" };
+  if (playerId !== room.creatorId) {
+    return {
+      success: false,
+      message: "Only the creator can remove players from the room",
+    };
   }
-  return null;
+  // Prevent removing the creator
+  if (playerIdToRemove === room.creatorId) {
+    return { success: false, message: "Cannot remove the creator" };
+  }
+
+  // Remove the player from players array
+  const playerIndex = room.players.findIndex((p) => p.id === playerIdToRemove);
+  if (playerIndex === -1)
+    return { success: false, message: "Player not in room" };
+  room.players.splice(playerIndex, 1);
+  await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
+  await redisClient.del(PLAYER_ROOM + playerIdToRemove);
+
+  const removedSocketId = await redisClient.get(
+    PLAYER_SOCKET + playerIdToRemove
+  );
+  return { success: true, room, removedSocketId };
 };
 
-export const startGame = async (roomId, playerId) => {
+export const deleteRoom = async (playerId, roomId) => {
+  const room = await getRoom(roomId);
+  if (!room) return { success: false, message: "Room not found" };
+
+  // Only creator can delete
+  if (playerId !== room.creatorId) {
+    return { success: false, message: "Only the creator can delete the room" };
+  }
+
+  // Delete room and all player mappings
+  await redisClient.del(ROOM_PREFIX + roomId);
+  for (const p of room.players) {
+    await redisClient.del(PLAYER_ROOM + p.id);
+  }
+
+  return { success: true, message: "Room deleted successfully" };
+};
+
+export const startGame = async (roomId, playerId, mode) => {
   const room = await getRoom(roomId);
   if (!room) throw new Error("Room not found");
   if (room.creatorId !== playerId)
@@ -96,21 +108,11 @@ export const startGame = async (roomId, playerId) => {
   if (room.gameStarted) throw new Error("Game already started");
 
   room.gameStarted = true;
+  room.settings.mode = mode;
   await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
   return room;
 };
 
-export const getMessages = async (roomId) => {
-  const room = await getRoom(roomId);
-  return room ? room.messages || [] : [];
-};
-
-export const addMessage = async (roomId, message) => {
-  const room = await getRoom(roomId);
-  if (!room) return null;
-  room.messages = room.messages || [];
-  const msgObj = { ...message, timestamp: Date.now() };
-  room.messages.push(msgObj);
-  await redisClient.set(ROOM_PREFIX + roomId, JSON.stringify(room));
-  return msgObj;
+export const createPlayerIdMapping = async (socketId, playerId) => {
+  await redisClient.set(PLAYER_SOCKET + playerId, socketId);
 };

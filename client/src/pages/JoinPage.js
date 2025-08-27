@@ -1,37 +1,50 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
-import { joinRoom, registerLobbyEvents } from "../utils/socketEvents";
+import { checkRoomExists, joinRoom } from "../utils/socketEvents";
 import UsernameInput from "../components/UsernameInput";
-import { useRoom } from "../contexts/RoomContext";
-import { useParams } from "react-router-dom";
-import { VStack, Heading, Box, useToast } from "@chakra-ui/react";
+import { VStack, Heading, Box } from "@chakra-ui/react";
+import { useEffect } from "react";
+import { useToast } from "../contexts/ToastContext";
 
 const JoinPage = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const { socket } = useSocket();
-  const { setPlayerName, setRoom } = useRoom();
-  const toast = useToast();
-  const handleCreate = (name) => {
-    joinRoom(socket, { roomId, playerName: name });
-    registerLobbyEvents(socket, {
-      onLobbyUpdate: (room) => {
-        setPlayerName(name);
-        setRoom(room);
-      },
-      onGameStarted: () => {
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    const verifyRoom = async () => {
+      if (!socket) return;
+      try {
+        const exists = await checkRoomExists(socket, roomId);
+        if (!exists) {
+          addToast(
+            "Invalid room",
+            "The room you're trying to join does not exist.",
+            "error"
+          );
+          navigate("/");
+        }
+      } catch (e) {
+        console.log(e);
         navigate("/");
-        toast({
-          title: "Game started",
-          description: "The game has begun!",
-          status: "info",
-          duration: 2500,
-          isClosable: true,
-          position: "top",
-        });
-      },
-    });
+      }
+    };
+    verifyRoom();
+  }, [socket, roomId, navigate, addToast]);
+  const onSuccess = () => {
+    addToast(
+      "Room joined successfully",
+      "You have joined the room successfully.",
+      "success"
+    );
     navigate("/lobby");
+  };
+  const onError = (msg) => {
+    addToast("Error joining room", msg, "error");
+  };
+  const handleCreate = (name) => {
+    joinRoom(socket, roomId, name, onSuccess, onError);
   };
 
   return (

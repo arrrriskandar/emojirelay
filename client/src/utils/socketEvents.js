@@ -7,28 +7,52 @@ export const createRoom = (socket, playerName, onSuccess, onError) => {
   if (onError) socket.once("error", onError);
 };
 
-export const getRoomByPlayerId = (socket, playerId, onSuccess, onError) => {
+export const joinRoom = (socket, roomId, playerName, onSuccess, onError) => {
   if (!socket) return;
 
-  socket.emit("getRoomByPlayerId", { playerId });
+  socket.emit("joinRoom", { roomId, playerName });
+
+  if (onSuccess) socket.once("roomJoined", onSuccess);
+  if (onError) socket.once("error", onError);
+};
+
+export const checkRoomExists = (socket, roomId) => {
+  return new Promise((resolve) => {
+    socket.emit("checkRoomExists", { roomId }, (exists) => resolve(exists));
+  });
+};
+
+export const getRoomByPlayerId = (socket, onSuccess, onError) => {
+  if (!socket) return;
+
+  socket.emit("getRoomByPlayerId");
 
   if (onSuccess) socket.once("roomData", onSuccess);
   if (onError) socket.once("error", onError);
 };
 
-export const joinRoom = (socket, { roomId, playerName }) => {
+export const deleteRoom = (socket, roomId, onError) => {
   if (!socket) return;
-  socket.emit("joinRoom", { roomId, playerName });
+  socket.emit("deleteRoom", { roomId });
+  if (onError) socket.once("error", onError);
+};
+
+export const removeFromRoom = (socket, roomId, playerIdToRemove, onError) => {
+  if (!socket) return;
+  socket.emit("removeFromRoom", { roomId, playerIdToRemove });
+  if (onError) socket.once("error", onError);
 };
 
 export const registerLobbyEvents = (
   socket,
-  { onLobbyUpdate, onGameStarted }
+  { onLobbyUpdate, onGameStarted, onRoomDeleted, onRemovedFromRoom }
 ) => {
   if (!socket) return;
 
   if (onLobbyUpdate) socket.on("lobbyUpdate", onLobbyUpdate);
   if (onGameStarted) socket.on("gameStarted", onGameStarted);
+  if (onRoomDeleted) socket.on("roomDeleted", onRoomDeleted);
+  if (onRemovedFromRoom) socket.on("removedFromRoom", onRemovedFromRoom);
 };
 
 export const unregisterLobbyEvents = (socket) => {
@@ -36,26 +60,12 @@ export const unregisterLobbyEvents = (socket) => {
 
   socket.off("lobbyUpdate");
   socket.off("gameStarted");
+  socket.off("roomDeleted");
+  socket.off("removedFromRoom");
 };
 
-export const startGame = (socket, roomId) => {
+export const startGame = (socket, roomId, mode, onError) => {
   if (!socket) return;
-  socket.emit("startGame", { roomId });
-};
-
-export const registerGameEvents = (socket, { onNewMessage, onChatHistory }) => {
-  if (!socket) return;
-  if (onNewMessage) socket.on("newMessage", onNewMessage);
-  if (onChatHistory) socket.on("chatHistory", onChatHistory);
-};
-
-export const unregisterGameEvents = (socket) => {
-  if (!socket) return;
-  socket.off("newMessage");
-  socket.off("chatHistory");
-};
-
-export const sendMessage = (socket, roomId, msgObj) => {
-  if (!socket) return;
-  socket.emit("sendMessage", { roomId, message: msgObj });
+  socket.emit("startGame", { roomId, mode });
+  if (onError) socket.once("error", onError);
 };

@@ -2,7 +2,8 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ChakraProvider, extendTheme } from "@chakra-ui/react";
-import { RoomProvider } from "./contexts/RoomContext";
+import { BrowserRouter } from "react-router-dom";
+import { ToastProvider } from "./contexts/ToastContext";
 
 const theme = extendTheme({
   config: {
@@ -14,10 +15,12 @@ const theme = extendTheme({
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <ChakraProvider theme={theme}>
-    <SocketProvider>
-      <RoomProvider>
-        <App />
-      </RoomProvider>
-    </SocketProvider>
+    <BrowserRouter>
+      <SocketProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </SocketProvider>
+    </BrowserRouter>
   </ChakraProvider>
 );

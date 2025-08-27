@@ -1,71 +1,95 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
 import {
+  startGame,
+  removeFromRoom,
+  deleteRoom,
   registerLobbyEvents,
   unregisterLobbyEvents,
-  startGame,
 } from "../utils/socketEvents";
 import { useRoom } from "../contexts/RoomContext";
-import {
-  VStack,
-  Box,
-  Heading,
-  Text,
-  Button,
-  List,
-  ListItem,
-  useToast,
-} from "@chakra-ui/react";
+import { VStack, Box, Heading, Text, Button } from "@chakra-ui/react";
+import GameModeSelector from "../components/GameModeSelector";
+import PlayerList from "../components/PlayerList";
+import { useEffect, useState } from "react";
+import { useToast } from "../contexts/ToastContext";
+import { createLobbyListeners } from "../utils/lobbyListeners";
 
 const LobbyPage = () => {
   const navigate = useNavigate();
   const { socket, playerId } = useSocket();
-  const { room, setRoom } = useRoom();
-  const toast = useToast();
+  const { room, setRoom, loading, setPlayerName } = useRoom();
+  const { addToast } = useToast();
+  const [mode, setMode] = useState("relaxed");
 
   useEffect(() => {
-    registerLobbyEvents(socket, {
-      onLobbyUpdate: (room) => setRoom(room),
-      onGameStarted: () => navigate("/game"),
+    if (!loading && !room) navigate("/");
+
+    if (room && room.gameStarted) navigate("/game");
+  }, [loading, room, navigate]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const listeners = createLobbyListeners({
+      setRoom,
+      setPlayerName,
+      addToast,
+      navigate,
     });
 
+    registerLobbyEvents(socket, listeners);
     return () => unregisterLobbyEvents(socket);
-  }, [navigate, socket, setRoom]);
+  }, [socket, setRoom, addToast, navigate, setPlayerName]);
 
-  const handleStartGame = () => {
-    startGame(socket, room.id);
-    navigate("/game");
+  if (loading) return <div>Loading...</div>;
+  if (!room) return null; // in case it's null during render
+
+  const link = `${window.location.origin}/join/${room.id}`;
+  const isCreator = room.creatorId === playerId;
+
+  const onRemovePlayerError = (msg) => {
+    addToast("Failed to remove player", msg, "error");
   };
 
-  const handleCopy = async () => {
-    const link = `${window.location.origin}/join/${room.id}`;
-    try {
-      await navigator.clipboard.writeText(link);
-      toast({
-        title: "Link copied!",
-        description: "You can now share this link with others.",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-        position: "top",
-      });
-    } catch (err) {
-      console.error("Failed to copy!", err);
-      toast({
-        title: "Error",
-        description: "Failed to copy the link.",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-        position: "top",
-      });
+  const onDeleteRoomError = (msg) => {
+    addToast("Failed to delete room", msg, "error");
+  };
+
+  const onStartGameError = (msg) => {
+    addToast("Failed to start game", msg, "error");
+  };
+
+  const handleStartGame = () => {
+    startGame(socket, room.id, mode, onStartGameError);
+  };
+
+  const handleRemovePlayer = (playerIdToRemove) => {
+    removeFromRoom(socket, room.id, playerIdToRemove, onRemovePlayerError);
+  };
+
+  const handleDeleteRoom = () => {
+    if (window.confirm("Are you sure you want to delete the room?")) {
+      deleteRoom(socket, room.id, onDeleteRoomError);
     }
   };
 
-  if (!room) return <Text>Loading room...</Text>;
+  const handleModeChange = (mode) => {
+    setMode(mode);
+  };
 
-  const link = `${window.location.origin}/join/${room.id}`;
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      addToast(
+        "Link copied!",
+        "You can now share this link with others.",
+        "success"
+      );
+    } catch (err) {
+      addToast("Error", "Failed to copy the link. Please try again.", "error");
+    }
+  };
 
   return (
     <VStack spacing={6} p={6} align="center" w="100%" maxW="500px" mx="auto">
@@ -74,26 +98,34 @@ const LobbyPage = () => {
       </Heading>
 
       <Box w="100%" p={6} borderRadius="md" shadow="md" bg="gray.700">
-        <Text fontWeight="bold" mb={2}>
+        {/* Room ID */}
+        <Text fontWeight="bold" mb={4}>
           Room ID:{" "}
           <Text as="span" color="teal.300">
             {room.id}
           </Text>
         </Text>
 
+        {/* Game Mode */}
+        {isCreator && !room.gameStarted && (
+          <GameModeSelector currentMode={mode} onChange={handleModeChange} />
+        )}
+
+        {/* Players */}
         <Text fontWeight="bold" mb={2}>
           Players waiting:
         </Text>
-        <List spacing={2} mb={4}>
-          {room.players.map((p) => (
-            <ListItem key={p.id} pl={2}>
-              • {p.name} {p.id === room.creatorId && "(Host)"}
-            </ListItem>
-          ))}
-        </List>
+        <PlayerList
+          players={room.players}
+          creatorId={room.creatorId}
+          isCreator={isCreator}
+          onRemove={handleRemovePlayer}
+          playerId={playerId}
+        />
 
-        {room.creatorId === playerId && !room.gameStarted && (
-          <Button colorScheme="teal" mb={4} onClick={handleStartGame} w="100%">
+        {/* Start Game */}
+        {isCreator && !room.gameStarted && (
+          <Button colorScheme="teal" mb={4} w="100%" onClick={handleStartGame}>
             Start Game
           </Button>
         )}
@@ -104,7 +136,8 @@ const LobbyPage = () => {
           </Text>
         )}
 
-        <Text>
+        {/* Invite Link */}
+        <Text mb={4}>
           Invite others:{" "}
           <Text
             as="span"
@@ -116,6 +149,13 @@ const LobbyPage = () => {
             {link}
           </Text>
         </Text>
+
+        {/* Delete Room */}
+        {isCreator && (
+          <Button colorScheme="red" w="100%" onClick={handleDeleteRoom}>
+            Delete Room
+          </Button>
+        )}
       </Box>
     </VStack>
   );

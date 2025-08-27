@@ -2,34 +2,29 @@ import { useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
 import { createRoom } from "../utils/socketEvents";
 import UsernameInput from "../components/UsernameInput";
-import { useRoom } from "../contexts/RoomContext";
-import { VStack, Heading, Box, useToast } from "@chakra-ui/react";
+import { VStack, Heading, Box } from "@chakra-ui/react";
+import { useToast } from "../contexts/ToastContext";
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const { socket } = useSocket();
-  const { setPlayerName, setRoom } = useRoom();
-  const toast = useToast();
-  const handleCreate = (name) => {
-    createRoom(
-      socket,
-      name,
-      (room) => {
-        setRoom(room);
-        setPlayerName(name);
-        navigate("/lobby");
-      },
-      (msg) => {
-        toast({
-          title: "Error creating room",
-          description: msg,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-          position: "top",
-        });
-      }
+  const { addToast } = useToast();
+
+  const onSuccess = () => {
+    addToast(
+      "Room created",
+      "Your room is ready for player. Invite players by sharing the link.",
+      "success"
     );
+    navigate("/lobby");
+  };
+
+  const onError = (msg) => {
+    addToast("Error creating room", msg, "error");
+  };
+
+  const handleCreate = (name) => {
+    createRoom(socket, name, onSuccess, onError);
   };
 
   return (

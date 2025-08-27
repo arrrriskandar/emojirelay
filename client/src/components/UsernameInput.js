@@ -1,20 +1,13 @@
 import { useState } from "react";
-import { VStack, Input, Button, useToast } from "@chakra-ui/react";
-
+import { VStack, Input, Button } from "@chakra-ui/react";
+import { useToast } from "../contexts/ToastContext";
 const UsernameInput = ({ buttonText, onSubmit }) => {
   const [value, setValue] = useState("");
-  const toast = useToast();
+  const { addToast } = useToast();
 
   const handleSubmit = () => {
     if (!value.trim()) {
-      toast({
-        title: "Username required",
-        description: "Please enter a username",
-        status: "warning",
-        duration: 2000,
-        isClosable: true,
-        position: "top",
-      });
+      addToast("Username required", "Please enter a username", "warning");
       return;
     }
     onSubmit(value.trim());
