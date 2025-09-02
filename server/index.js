@@ -2,7 +2,7 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import setupSocketHandlers from "./socketHandler.js";
+import setupSocketHandlers from "./events/socketHandler.js";
 
 const app = express();
 app.use(cors());

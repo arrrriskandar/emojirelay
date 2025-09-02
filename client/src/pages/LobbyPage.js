@@ -61,7 +61,7 @@ const LobbyPage = () => {
   };
 
   const handleStartGame = () => {
-    startGame(socket, room.id, mode, onStartGameError);
+    startGame(socket, room.id, room.players, mode, onStartGameError);
   };
 
   const handleRemovePlayer = (playerIdToRemove) => {

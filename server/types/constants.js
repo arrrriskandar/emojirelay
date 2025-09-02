@@ -1,0 +1,7 @@
+export const REDIS_KEYS = {
+  ROOM: "ROOM:",
+  PLAYER_ROOM: "PLAYER_ROOM:",
+  PLAYER_SOCKET: "PLAYER_SOCKET:",
+  ROUND: "ROUND:",
+  STEP: "STEP:",
+};

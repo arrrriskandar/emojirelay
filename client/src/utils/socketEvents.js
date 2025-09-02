@@ -64,8 +64,17 @@ export const unregisterLobbyEvents = (socket) => {
   socket.off("removedFromRoom");
 };
 
-export const startGame = (socket, roomId, mode, onError) => {
+export const startGame = (socket, roomId, players, mode, onError) => {
   if (!socket) return;
-  socket.emit("startGame", { roomId, mode });
+  socket.emit("startGame", { roomId, mode, players });
+  if (onError) socket.once("error", onError);
+};
+
+export const getCurrentRound = (socket, currentRoundId, onSuccess, onError) => {
+  if (!socket) return;
+
+  socket.emit("getCurrentRound", { currentRoundId });
+
+  if (onSuccess) socket.once("roundAndStepData", onSuccess);
   if (onError) socket.once("error", onError);
 };
