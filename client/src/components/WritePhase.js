@@ -1,7 +1,7 @@
 import { Box, VStack, Heading } from "@chakra-ui/react";
 import TextInput from "./TextInput";
 
-const WritePhase = () => {
+const WritePhase = ({ step, readyCount, totalCount }) => {
   const handleSubmit = (text) => {
     console.log("Submitted text:", text);
     // TODO: emit to backend later

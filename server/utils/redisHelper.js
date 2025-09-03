@@ -47,3 +47,7 @@ export const setRedisStep = async (stepId, step) => {
 export const getRedisRound = async (roundId) => {
   return await redisClient.get(REDIS_KEYS.ROUND + roundId);
 };
+
+export const getRedisStep = async (stepId) => {
+  return await redisClient.get(REDIS_KEYS.STEP + stepId);
+};

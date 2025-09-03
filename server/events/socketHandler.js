@@ -9,6 +9,7 @@ import {
 } from "../controllers/rooms.js";
 import { setPlayerSocket } from "../utils/redisHelper.js";
 import { getRound, startRound } from "../controllers/rounds.js";
+import { getCurrentStep } from "../controllers/steps.js";
 
 const setupSocketHandlers = (io) => {
   io.on("connection", (socket) => {
@@ -89,7 +90,7 @@ const setupSocketHandlers = (io) => {
         // --- START NEXT ROUND ---
         socket.on("startNextRound", async ({ roomId, players }) => {
           try {
-            const roundId = await createRound(players);
+            const roundId = await startRound(players);
             const room = await updateCurrentRoundId(roomId, roundId);
             io.to(roomId).emit("newRoundStarted", {
               roundId,
@@ -148,13 +149,21 @@ const setupSocketHandlers = (io) => {
           }
         });
 
-        // --- GET CURRENT ROUND ---
-        socket.on("getCurrentRound", async ({ currentRoundId }) => {
+        // --- GET CURRENT TURN ---
+        socket.on("getCurrentTurn", async ({ currentRoundId }) => {
           try {
             const round = await getRound(currentRoundId);
-            const step = await getCurrentStep(round, playerId);
+            const { step, prevStepValue, readyCounter } = await getCurrentStep(
+              round,
+              playerId
+            );
+            socket.emit("turnData", {
+              roundData: round,
+              stepData: step,
+              prevStepValue,
+              readyCounter,
+            });
           } catch (e) {
-            console.error("Error in deleteRoom:", e);
             socket.emit("error", e.message);
           }
         });
