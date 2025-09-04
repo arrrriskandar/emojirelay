@@ -10,6 +10,7 @@ import {
 import { setPlayerSocket } from "../utils/redisHelper.js";
 import { getRound, startRound } from "../controllers/rounds.js";
 import { getCurrentStep } from "../controllers/steps.js";
+import { createTurn, getTurn } from "../controllers/turns.js";
 
 const setupSocketHandlers = (io) => {
   io.on("connection", (socket) => {
@@ -78,7 +79,8 @@ const setupSocketHandlers = (io) => {
         // --- START GAME ---
         socket.on("startGame", async ({ roomId, mode, players }) => {
           try {
-            const roundId = await startRound(players);
+            const turnId = await createTurn();
+            const roundId = await startRound(players, turnId);
             const room = await startGame(roomId, playerId, mode, roundId);
             io.to(roomId).emit("gameStarted", room);
           } catch (e) {
@@ -90,7 +92,8 @@ const setupSocketHandlers = (io) => {
         // --- START NEXT ROUND ---
         socket.on("startNextRound", async ({ roomId, players }) => {
           try {
-            const roundId = await startRound(players);
+            const turnId = await createTurn();
+            const roundId = await startRound(players, turnId);
             const room = await updateCurrentRoundId(roomId, roundId);
             io.to(roomId).emit("newRoundStarted", {
               roundId,
@@ -149,19 +152,16 @@ const setupSocketHandlers = (io) => {
           }
         });
 
-        // --- GET CURRENT TURN ---
-        socket.on("getCurrentTurn", async ({ currentRoundId }) => {
+        // --- GET GAME STATE ---
+        socket.on("getGameState", async ({ currentRoundId }) => {
           try {
             const round = await getRound(currentRoundId);
-            const { step, prevStepValue, readyCounter } = await getCurrentStep(
-              round,
-              playerId
-            );
-            socket.emit("turnData", {
+            const turn = await getTurn(round.turnId);
+            const step = await getCurrentStep(round, playerId, turn.turnIndex);
+            socket.emit("gameState", {
               roundData: round,
               stepData: step,
-              prevStepValue,
-              readyCounter,
+              turnData: turn,
             });
           } catch (e) {
             socket.emit("error", e.message);

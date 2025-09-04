@@ -70,11 +70,11 @@ export const startGame = (socket, roomId, players, mode, onError) => {
   if (onError) socket.once("error", onError);
 };
 
-export const getCurrentTurn = (socket, currentRoundId, onSuccess, onError) => {
+export const getGameState = (socket, currentRoundId, onSuccess, onError) => {
   if (!socket) return;
 
-  socket.emit("getCurrentTurn", { currentRoundId });
+  socket.emit("getGameState", { currentRoundId });
 
-  if (onSuccess) socket.once("turnData", onSuccess);
+  if (onSuccess) socket.once("gameState", onSuccess);
   if (onError) socket.once("error", onError);
 };

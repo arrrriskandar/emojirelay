@@ -12,8 +12,15 @@ export const createRound = async (players, maxTurn) => {
 
     for (let step = 0; step < maxTurn; step++) {
       const playerId = shuffled[nextIdx].id;
-
-      const stepId = await createStep(playerId);
+      const type =
+        step === 0
+          ? "write"
+          : step === maxTurn - 1
+          ? "review"
+          : step % 2 == 0
+          ? "guess"
+          : "emoji";
+      const stepId = await createStep(playerId, type);
       stepIds.push(stepId);
 
       nextIdx = (nextIdx + 1) % shuffled.length;

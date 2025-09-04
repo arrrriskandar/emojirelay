@@ -51,3 +51,11 @@ export const getRedisRound = async (roundId) => {
 export const getRedisStep = async (stepId) => {
   return await redisClient.get(REDIS_KEYS.STEP + stepId);
 };
+
+export const setRedisTurn = async (turnId, turn) => {
+  await redisClient.set(REDIS_KEYS.TURN + turnId, JSON.stringify(turn));
+};
+
+export const getRedisTurn = async (turnId) => {
+  return await redisClient.get(REDIS_KEYS.TURN + turnId);
+};

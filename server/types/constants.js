@@ -4,4 +4,5 @@ export const REDIS_KEYS = {
   PLAYER_SOCKET: "PLAYER_SOCKET:",
   ROUND: "ROUND:",
   STEP: "STEP:",
+  TURN: "TURN:",
 };
