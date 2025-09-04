@@ -1,4 +1,4 @@
-import { createStep } from "./createStep.js";
+import { createStep } from "../controllers/steps.js";
 
 export const createRound = async (players, maxTurn) => {
   const shuffled = [...players].sort(() => Math.random() - 0.5);
