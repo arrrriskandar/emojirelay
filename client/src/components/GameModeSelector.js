@@ -8,9 +8,9 @@ const GameModeSelector = ({ currentMode, onChange }) => (
       value={currentMode || ""}
       onChange={(e) => onChange(e.target.value)}
     >
-      <option value="fast">Fast (15s per turn)</option>
-      <option value="normal">Normal (30s per turn)</option>
-      <option value="relaxed">Relaxed (60s per turn)</option>
+      <option value={15000}>Chaos (15s per turn)</option>
+      <option value={30000}>Normal (30s per turn)</option>
+      <option value={60000}>Relaxed (60s per turn)</option>
     </Select>
   </Box>
 );

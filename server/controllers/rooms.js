@@ -18,7 +18,7 @@ export const createRoom = async (playerId, creatorName) => {
     creatorId: playerId,
     players: [{ id: playerId, name: creatorName }],
     gameStarted: false,
-    settings: { mode: "relaxed" },
+    settings: { turnDuration: 60000 },
     rounds: [],
   };
 
@@ -95,7 +95,7 @@ export const deleteRoom = async (playerId, roomId) => {
   return { success: true, message: "Room deleted successfully" };
 };
 
-export const startGame = async (roomId, playerId, mode, roundId) => {
+export const startGame = async (roomId, playerId, turnDuration, roundId) => {
   const room = await getRoom(roomId);
   if (!room) throw new Error("Room not found");
   if (room.creatorId !== playerId)
@@ -104,7 +104,7 @@ export const startGame = async (roomId, playerId, mode, roundId) => {
 
   room.rounds.push(roundId);
   room.gameStarted = true;
-  room.settings.mode = mode;
+  room.settings.turnDuration = turnDuration;
   await setRedisRoom(room);
   return room;
 };

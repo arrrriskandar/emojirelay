@@ -20,7 +20,7 @@ const LobbyPage = () => {
   const { socket, playerId } = useSocket();
   const { room, setRoom, loading, setPlayerName } = useRoom();
   const { addToast } = useToast();
-  const [mode, setMode] = useState("relaxed");
+  const [turnDuration, setTurnDuration] = useState(60000);
 
   useEffect(() => {
     if (!loading && !room) navigate("/");
@@ -61,7 +61,7 @@ const LobbyPage = () => {
   };
 
   const handleStartGame = () => {
-    startGame(socket, room.id, room.players, mode, onStartGameError);
+    startGame(socket, room.id, room.players, turnDuration, onStartGameError);
   };
 
   const handleRemovePlayer = (playerIdToRemove) => {
@@ -75,7 +75,7 @@ const LobbyPage = () => {
   };
 
   const handleModeChange = (mode) => {
-    setMode(mode);
+    setTurnDuration(mode);
   };
 
   const handleCopy = async () => {
@@ -108,7 +108,10 @@ const LobbyPage = () => {
 
         {/* Game Mode */}
         {isCreator && !room.gameStarted && (
-          <GameModeSelector currentMode={mode} onChange={handleModeChange} />
+          <GameModeSelector
+            currentMode={turnDuration}
+            onChange={handleModeChange}
+          />
         )}
 
         {/* Players */}

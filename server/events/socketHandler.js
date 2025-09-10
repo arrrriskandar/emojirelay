@@ -77,11 +77,16 @@ const setupSocketHandlers = (io) => {
         });
 
         // --- START GAME ---
-        socket.on("startGame", async ({ roomId, mode, players }) => {
+        socket.on("startGame", async ({ roomId, turnDuration, players }) => {
           try {
-            const turnId = await createTurn();
+            const turnId = await createTurn(turnDuration);
             const roundId = await startRound(players, turnId);
-            const room = await startGame(roomId, playerId, mode, roundId);
+            const room = await startGame(
+              roomId,
+              playerId,
+              turnDuration,
+              roundId
+            );
             io.to(roomId).emit("gameStarted", room);
           } catch (e) {
             console.error("Error in startGame:", e);

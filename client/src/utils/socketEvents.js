@@ -64,9 +64,9 @@ export const unregisterLobbyEvents = (socket) => {
   socket.off("removedFromRoom");
 };
 
-export const startGame = (socket, roomId, players, mode, onError) => {
+export const startGame = (socket, roomId, players, turnDuration, onError) => {
   if (!socket) return;
-  socket.emit("startGame", { roomId, mode, players });
+  socket.emit("startGame", { roomId, turnDuration, players });
   if (onError) socket.once("error", onError);
 };
 

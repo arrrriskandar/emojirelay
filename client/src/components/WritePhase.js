@@ -1,7 +1,8 @@
 import { Box, VStack, Heading } from "@chakra-ui/react";
 import TextInput from "./TextInput";
+import ReadyCounter from "./ReadyCounter";
 
-const WritePhase = ({ step, readyCount, totalCount }) => {
+const WritePhase = ({ step, turn, totalCount }) => {
   const handleSubmit = (text) => {
     console.log("Submitted text:", text);
     // TODO: emit to backend later
@@ -9,8 +10,10 @@ const WritePhase = ({ step, readyCount, totalCount }) => {
 
   return (
     <VStack spacing={6} justify="center" align="center" h="100vh" p={4}>
+      <ReadyCounter readyCount={turn.readyCount} totalCount={totalCount} />
       <Heading size="2xl" color="teal.600">
-        Write your word/phrase
+        Write your word/phrase {JSON.stringify(step)}
+        {totalCount}
       </Heading>
       <Box w={{ base: "90%", sm: "400px" }} textAlign="center">
         <TextInput
