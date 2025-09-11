@@ -7,7 +7,11 @@ import {
   deleteRedisPlayerRoom,
   getRedisPlayerSocket,
   deleteRedisRoom,
-  getRedisRoomByPlayerId,
+  getRedisPlayerRoom,
+  setRedisRoomPlayers,
+  getRedisRoomPlayers,
+  redisCheckAlreadyInRoom,
+  redisRemoveFromRoom,
 } from "../utils/redisHelper.js";
 
 export const createRoom = async (playerId, creatorName) => {
@@ -16,39 +20,56 @@ export const createRoom = async (playerId, creatorName) => {
   const room = {
     id: roomId,
     creatorId: playerId,
-    players: [{ id: playerId, name: creatorName }],
     gameStarted: false,
     settings: { turnDuration: 60000 },
     rounds: [],
   };
 
+  const player = {
+    id: playerId,
+    name: creatorName,
+  };
+
   await setRedisRoom(room);
+  await setRedisRoomPlayers(roomId, playerId, player);
   await setRedisPlayerRoom(playerId, roomId);
-  return room;
+
+  return { ...room, players: [player] };
 };
 
 export const getRoom = async (roomId) => {
-  const data = await getRedisRoom(roomId);
-  return data ? JSON.parse(data) : null;
+  return await getRedisRoom(roomId);
+};
+
+const getRoomPlayers = async (roomId) => {
+  return await getRedisRoomPlayers(roomId);
 };
 
 export const getRoomByPlayerId = async (playerId) => {
-  const roomId = await getRedisRoomByPlayerId(playerId);
+  const roomId = await getRedisPlayerRoom(playerId);
   if (!roomId) return null;
-  return getRoom(roomId);
+  const room = await getRoom(roomId);
+  const players = await getRoomPlayers(roomId);
+  return { ...room, players };
 };
 
 export const joinRoom = async (roomId, playerId, playerName) => {
+  const alreadyInRoom = await redisCheckAlreadyInRoom(roomId, playerId);
   const room = await getRoom(roomId);
-  if (!room) return null;
+
   if (room.gameStarted) throw new Error("Game already started");
 
-  if (!room.players.find((p) => p.id === playerId)) {
-    room.players.push({ id: playerId, name: playerName });
-    await setRedisRoom(room);
+  const player = {
+    id: playerId,
+    name: playerName,
+  };
+
+  if (!alreadyInRoom) {
     await setRedisPlayerRoom(playerId, roomId);
+    await setRedisRoomPlayers(roomId, playerId, player);
   }
-  return room;
+  const players = await getRoomPlayers(roomId);
+  return { ...room, players };
 };
 
 export const removeFromRoom = async (playerId, roomId, playerIdToRemove) => {
@@ -65,16 +86,18 @@ export const removeFromRoom = async (playerId, roomId, playerIdToRemove) => {
     return { success: false, message: "Cannot remove the creator" };
   }
 
-  // Remove the player from players array
-  const playerIndex = room.players.findIndex((p) => p.id === playerIdToRemove);
-  if (playerIndex === -1)
+  const removed = await redisRemoveFromRoom(roomId, playerIdToRemove);
+
+  if (removed === 0) {
     return { success: false, message: "Player not in room" };
-  room.players.splice(playerIndex, 1);
-  await setRedisRoom(room);
+  }
   await deleteRedisPlayerRoom(playerIdToRemove);
 
   const removedSocketId = await getRedisPlayerSocket(playerIdToRemove);
-  return { success: true, room, removedSocketId };
+  const players = await getRoomPlayers(roomId);
+
+  const updatedRoom = { ...room, players };
+  return { success: true, room: updatedRoom, removedSocketId };
 };
 
 export const deleteRoom = async (playerId, roomId) => {

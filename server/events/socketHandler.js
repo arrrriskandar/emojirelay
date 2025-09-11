@@ -7,7 +7,7 @@ import {
   getRoom,
   deleteRoom,
 } from "../controllers/rooms.js";
-import { setPlayerSocket } from "../utils/redisHelper.js";
+import { setRedisPlayerSocket } from "../utils/redisHelper.js";
 import { getRound, startRound } from "../controllers/rounds.js";
 import { getCurrentStep } from "../controllers/steps.js";
 import { createTurn, getTurn } from "../controllers/turns.js";
@@ -19,7 +19,7 @@ const setupSocketHandlers = (io) => {
         const playerId = socket.handshake.query.playerId;
         if (!playerId) return;
 
-        await setPlayerSocket(playerId, socket.id);
+        await setRedisPlayerSocket(playerId, socket.id);
         console.log(`Player connected: ${playerId} (socket: ${socket.id})`);
 
         // --- CREATE ROOM ---

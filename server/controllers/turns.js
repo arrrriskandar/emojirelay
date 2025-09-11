@@ -19,6 +19,5 @@ export const startNextTurn = async (turnId, turnDuration) => {
 };
 
 export const getTurn = async (turnId) => {
-  const turn = await getRedisTurn(turnId);
-  return JSON.parse(turn);
+  return await getRedisTurn(turnId);
 };

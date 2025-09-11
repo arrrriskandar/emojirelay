@@ -17,8 +17,7 @@ export const createStep = async (playerId, type) => {
 };
 
 export const getStep = async (stepId) => {
-  const step = await getRedisStep(stepId);
-  return JSON.parse(step);
+  return await getRedisStep(stepId);
 };
 
 export const getCurrentStep = async (round, playerId, turnIndex) => {

@@ -19,6 +19,5 @@ export const startRound = async (players, turnId) => {
 };
 
 export const getRound = async (roundId) => {
-  const round = await getRedisRound(roundId);
-  return JSON.parse(round);
+  return await getRedisRound(roundId);
 };
