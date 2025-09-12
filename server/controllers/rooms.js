@@ -129,7 +129,8 @@ export const startGame = async (roomId, playerId, turnDuration, roundId) => {
   room.gameStarted = true;
   room.settings.turnDuration = turnDuration;
   await setRedisRoom(room);
-  return room;
+  const players = await getRoomPlayers(roomId);
+  return { ...room, players };
 };
 
 export const updateCurrentRoundId = async (roomId, roundId) => {
@@ -139,5 +140,6 @@ export const updateCurrentRoundId = async (roomId, roundId) => {
   room.rounds.push(roundId);
   await setRedisRoom(room);
 
-  return room;
+  const players = await getRoomPlayers(roomId);
+  return { ...room, players };
 };

@@ -87,11 +87,32 @@ export const getRedisStep = async (stepId) => {
 };
 
 // --- TURN HELPER ---
-export const setRedisTurn = async (turnId, turn) => {
-  await redisClient.set(REDIS_KEYS.TURN + turnId, JSON.stringify(turn));
+export const redisCreateTurn = async (turnId, turnDeadline) => {
+  await redisClient.hSet(REDIS_KEYS.TURN + turnId, {
+    readyCount: 0,
+    turnIndex: 0,
+    turnDeadline,
+  });
 };
 
 export const getRedisTurn = async (turnId) => {
-  const turn = await redisClient.get(REDIS_KEYS.TURN + turnId);
-  return turn ? JSON.parse(turn) : null;
+  const turn = await redisClient.hGetAll(REDIS_KEYS.TURN + turnId);
+  return {
+    ...turn,
+    readyCount: Number(turn.readyCount || 0),
+    turnIndex: Number(turn.turnIndex || 0),
+    turnDeadline: Number(turn.turnDeadline || 0),
+  };
+};
+
+export const redisStartNextTurn = async (turnId, turnDeadline) => {
+  await redisClient
+    .multi()
+    .hSet(REDIS_KEYS.TURN + turnId, { readyCount: 0, turnDeadline })
+    .hIncrBy(REDIS_KEYS.TURN + turnId, "turnIndex", 1)
+    .exec();
+};
+
+export const redisUpdateReadyCount = async (turnId, value) => {
+  await redisClient.hIncrBy(REDIS_KEYS.TURN + turnId, "readyCount", value);
 };
