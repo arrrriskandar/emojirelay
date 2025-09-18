@@ -10,7 +10,12 @@ import {
 import { setRedisPlayerSocket } from "../utils/redisHelper.js";
 import { getRound, startRound } from "../controllers/rounds.js";
 import { getCurrentStep, updateStep } from "../controllers/steps.js";
-import { createTurn, getTurn, updateReadyCount } from "../controllers/turns.js";
+import {
+  createTurn,
+  getTurn,
+  startNextTurn,
+  updateReadyCount,
+} from "../controllers/turns.js";
 
 const setupSocketHandlers = (io) => {
   io.on("connection", (socket) => {
@@ -104,6 +109,16 @@ const setupSocketHandlers = (io) => {
               roundId,
               roundData: room.currentRound,
             });
+          } catch (e) {
+            socket.emit("error", e.message);
+          }
+        });
+
+        // --- START NEXT STEP ---
+        socket.on("startNextStep", async ({ roomId, turnId, turnDuration }) => {
+          try {
+            await startNextTurn(turnId, turnDuration);
+            io.to(roomId).emit("newStepStarted");
           } catch (e) {
             socket.emit("error", e.message);
           }

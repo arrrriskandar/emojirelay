@@ -10,38 +10,51 @@ import {
   registerGameEvents,
   unregisterGameEvents,
   updateGameState,
+  updateTurn,
 } from "../utils/socketEvents";
 import { useSocket } from "../contexts/SocketContext";
 import { useToast } from "../contexts/ToastContext";
 
 const GamePage = () => {
   const { room, loading } = useRoom();
-  const { socket } = useSocket();
+  const { socket, playerId } = useSocket();
   const { addToast } = useToast();
   const [step, setStep] = useState();
   const [round, setRound] = useState();
   const [turn, setTurn] = useState();
   const navigate = useNavigate();
 
+  const handleGameStateSuccess = ({ stepData, roundData, turnData }) => {
+    if (stepData) setStep(stepData);
+    if (roundData) setRound(roundData);
+    if (turnData) setTurn(turnData);
+  };
+
+  const handleGameStateError = (msg) => {
+    addToast("Error retrieving game state", msg, "error");
+  };
+
   useEffect(() => {
-    const onSuccess = ({ stepData, roundData, turnData }) => {
-      setTurn(turnData);
-      setStep(stepData);
-      setRound(roundData);
-    };
-    const onError = (msg) => {
-      addToast("Error retrieving current round", msg, "error");
-    };
-    if (!loading && !room) navigate("/");
+    if (loading) return;
+
+    if (!room) {
+      navigate("/");
+      return;
+    }
     if (room)
       if (!room.gameStarted) {
         navigate("/lobby");
-      } else {
-        const currentRoundId = room.rounds[room.rounds.length - 1];
-        getGameState(socket, currentRoundId, onSuccess, onError);
+        return;
       }
+    const currentRoundId = room.rounds[room.rounds.length - 1];
+    getGameState(
+      socket,
+      currentRoundId,
+      handleGameStateSuccess,
+      handleGameStateError
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addToast, loading, navigate, room, socket]);
+  }, [loading, navigate, room, socket]);
 
   useEffect(() => {
     if (!socket) return;
@@ -49,9 +62,19 @@ const GamePage = () => {
     const onUpdatedGameState = ({ turnData }) => {
       setTurn(turnData);
     };
-    registerGameEvents(socket, onUpdatedGameState);
+    const onNewStepStarted = () => {
+      const currentRoundId = room.rounds[room.rounds.length - 1];
+      getGameState(
+        socket,
+        currentRoundId,
+        handleGameStateSuccess,
+        handleGameStateError
+      );
+    };
+    registerGameEvents(socket, onUpdatedGameState, onNewStepStarted);
     return () => unregisterGameEvents(socket);
-  }, [socket]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, room]);
 
   if (loading) return <>Loading........</>;
   if (!room) return null;
@@ -78,6 +101,21 @@ const GamePage = () => {
       onUpdateGameStateError
     );
   };
+
+  const onStartNextStepError = (msg) => {
+    addToast("Error starting next step", msg, "error");
+  };
+
+  const startNextStep = () => {
+    updateTurn(
+      socket,
+      room.id,
+      turn.id,
+      room.settings.turnDuration,
+      onStartNextStepError
+    );
+  };
+
   switch (step.type) {
     case "write":
       return (
@@ -86,6 +124,8 @@ const GamePage = () => {
           totalCount={room.players.length}
           turn={turn}
           handleGameStateUpdate={handleGameStateUpdate}
+          isCreator={room.creatorId === playerId}
+          startNextStep={startNextStep}
         />
       );
     case "emoji":

@@ -14,13 +14,13 @@ export const createTurn = async (turnDuration) => {
   return turnId;
 };
 
+export const getTurn = async (turnId) => {
+  return await getRedisTurn(turnId);
+};
+
 export const startNextTurn = async (turnId, turnDuration) => {
   const turnDeadline = Date.now() + turnDuration;
   await redisStartNextTurn(turnId, turnDeadline);
-};
-
-export const getTurn = async (turnId) => {
-  return await getRedisTurn(turnId);
 };
 
 export const updateReadyCount = async (turnId, value) => {

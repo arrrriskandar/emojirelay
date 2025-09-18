@@ -104,14 +104,26 @@ export const updateGameState = (
   if (onError) socket.once("error", onError);
 };
 
-export const registerGameEvents = (socket, { onUpdatedGameState }) => {
+export const updateTurn = (socket, roomId, turnId, turnDuration, onError) => {
+  if (!socket) return;
+
+  socket.emit("startNextStep", { roomId, turnId, turnDuration });
+  if (onError) socket.once("error", onError);
+};
+
+export const registerGameEvents = (
+  socket,
+  { onUpdatedGameState, onNewStepStarted }
+) => {
   if (!socket) return;
 
   if (onUpdatedGameState) socket.on("gameStateUpdate", onUpdatedGameState);
+  if (onNewStepStarted) socket.on("newStepStarted", onNewStepStarted);
 };
 
 export const unregisterGameEvents = (socket) => {
   if (!socket) return;
 
   socket.off("gameStateUpdate");
+  socket.off("newStepStarted");
 };

@@ -2,13 +2,24 @@ import { Box, VStack, Heading, Text, Button } from "@chakra-ui/react";
 import TextInput from "./TextInput";
 import ReadyCounter from "./ReadyCounter";
 
-const WritePhase = ({ step, turn, totalCount, handleGameStateUpdate }) => {
+const WritePhase = ({
+  step,
+  turn,
+  totalCount,
+  handleGameStateUpdate,
+  isCreator,
+  startNextStep,
+}) => {
   const handleSubmit = (text) => {
     handleGameStateUpdate(text, 1, true);
   };
 
   const handleEdit = () => {
     handleGameStateUpdate(null, -1, false);
+  };
+
+  const handleContinue = () => {
+    startNextStep();
   };
 
   return (
@@ -27,14 +38,19 @@ const WritePhase = ({ step, turn, totalCount, handleGameStateUpdate }) => {
             errorDescription={"Please enter a word or phrase"}
           />
         ) : (
-          <>
+          <VStack>
             <Text mb={2} fontStyle="italic">
               {step.value}
             </Text>
             <Button onClick={handleEdit} colorScheme="teal" size="sm">
               Edit
             </Button>
-          </>
+            {isCreator && turn.readyCount === totalCount && (
+              <Button onClick={handleContinue} size="sm" colorScheme="green">
+                Continue
+              </Button>
+            )}
+          </VStack>
         )}
       </Box>
     </VStack>
