@@ -89,6 +89,7 @@ export const getRedisStep = async (stepId) => {
 // --- TURN HELPER ---
 export const redisCreateTurn = async (turnId, turnDeadline) => {
   await redisClient.hSet(REDIS_KEYS.TURN + turnId, {
+    id: turnId,
     readyCount: 0,
     turnIndex: 0,
     turnDeadline,

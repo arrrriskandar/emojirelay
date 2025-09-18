@@ -78,3 +78,40 @@ export const getGameState = (socket, currentRoundId, onSuccess, onError) => {
   if (onSuccess) socket.once("gameState", onSuccess);
   if (onError) socket.once("error", onError);
 };
+
+export const updateGameState = (
+  socket,
+  roomId,
+  turnId,
+  incrementValue,
+  stepId,
+  ready,
+  value,
+  onSuccess,
+  onError
+) => {
+  if (!socket) return;
+
+  socket.emit("updateGameState", {
+    roomId,
+    turnId,
+    incrementValue,
+    stepId,
+    ready,
+    value,
+  });
+  if (onSuccess) socket.once("stepUpdate", onSuccess);
+  if (onError) socket.once("error", onError);
+};
+
+export const registerGameEvents = (socket, { onUpdatedGameState }) => {
+  if (!socket) return;
+
+  if (onUpdatedGameState) socket.on("gameStateUpdate", onUpdatedGameState);
+};
+
+export const unregisterGameEvents = (socket) => {
+  if (!socket) return;
+
+  socket.off("gameStateUpdate");
+};

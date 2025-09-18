@@ -1,28 +1,41 @@
-import { Box, VStack, Heading } from "@chakra-ui/react";
+import { Box, VStack, Heading, Text, Button } from "@chakra-ui/react";
 import TextInput from "./TextInput";
 import ReadyCounter from "./ReadyCounter";
 
-const WritePhase = ({ step, turn, totalCount }) => {
+const WritePhase = ({ step, turn, totalCount, handleGameStateUpdate }) => {
   const handleSubmit = (text) => {
-    console.log("Submitted text:", text);
-    // TODO: emit to backend later
+    handleGameStateUpdate(text, 1, true);
+  };
+
+  const handleEdit = () => {
+    handleGameStateUpdate(null, -1, false);
   };
 
   return (
     <VStack spacing={6} justify="center" align="center" h="100vh" p={4}>
       <ReadyCounter readyCount={turn.readyCount} totalCount={totalCount} />
       <Heading size="2xl" color="teal.600">
-        Write your word/phrase {JSON.stringify(step)}
-        {totalCount}
+        {step.ready ? "Submitted" : "Write your word/phrase"}
       </Heading>
       <Box w={{ base: "90%", sm: "400px" }} textAlign="center">
-        <TextInput
-          buttonText="Submit"
-          onSubmit={handleSubmit}
-          placeholderText={"Please enter a word or phrase"}
-          errorTitle={"Input is empty"}
-          errorDescription={"Please enter a word or phrase"}
-        />
+        {!step.ready ? (
+          <TextInput
+            buttonText="Submit"
+            onSubmit={handleSubmit}
+            placeholderText={"Please enter a word or phrase"}
+            errorTitle={"Input is empty"}
+            errorDescription={"Please enter a word or phrase"}
+          />
+        ) : (
+          <>
+            <Text mb={2} fontStyle="italic">
+              {step.value}
+            </Text>
+            <Button onClick={handleEdit} colorScheme="teal" size="sm">
+              Edit
+            </Button>
+          </>
+        )}
       </Box>
     </VStack>
   );

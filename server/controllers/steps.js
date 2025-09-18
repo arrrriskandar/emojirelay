@@ -44,3 +44,14 @@ export const getCurrentStep = async (round, playerId, turnIndex) => {
 
   return step;
 };
+
+export const updateStep = async (stepId, ready, value = null) => {
+  const step = await getStep(stepId);
+
+  step.ready = ready;
+  if (value) {
+    step.value = value;
+  }
+  await setRedisStep(stepId, step);
+  return step;
+};

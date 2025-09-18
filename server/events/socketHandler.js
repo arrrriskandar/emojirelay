@@ -9,8 +9,8 @@ import {
 } from "../controllers/rooms.js";
 import { setRedisPlayerSocket } from "../utils/redisHelper.js";
 import { getRound, startRound } from "../controllers/rounds.js";
-import { getCurrentStep } from "../controllers/steps.js";
-import { createTurn, getTurn } from "../controllers/turns.js";
+import { getCurrentStep, updateStep } from "../controllers/steps.js";
+import { createTurn, getTurn, updateReadyCount } from "../controllers/turns.js";
 
 const setupSocketHandlers = (io) => {
   io.on("connection", (socket) => {
@@ -172,6 +172,25 @@ const setupSocketHandlers = (io) => {
             socket.emit("error", e.message);
           }
         });
+
+        // --- UPDATE GAME STATE ---
+        socket.on(
+          "updateGameState",
+          async ({ roomId, turnId, incrementValue, stepId, ready, value }) => {
+            try {
+              const turn = await updateReadyCount(turnId, incrementValue);
+              const step = await updateStep(stepId, ready, value);
+              socket.emit("stepUpdate", {
+                stepData: step,
+              });
+              io.to(roomId).emit("turnUpdate", {
+                turnData: turn,
+              });
+            } catch (e) {
+              socket.emit("error", e.message);
+            }
+          }
+        );
       } catch (err) {
         console.error("Fatal socket connection error:", err);
         socket.disconnect(true); // disconnect client if critical error
