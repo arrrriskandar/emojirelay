@@ -16,7 +16,7 @@ export const RoomProvider = ({ children }) => {
     const onSuccess = (roomData) => {
       setRoom(roomData);
       setPlayerName(
-        roomData.players.find((player) => player.id === playerId)?.name || ""
+        roomData?.players.find((player) => player.id === playerId)?.name || ""
       );
       setLoading(false);
     };

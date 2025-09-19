@@ -44,6 +44,10 @@ export const redisRemoveFromRoom = async (roomId, playerId) => {
   return redisClient.hDel(REDIS_KEYS.ROOM_PLAYERS + roomId, playerId);
 };
 
+export const deleteRedisRoomPlayers = async (roomId) => {
+  await redisClient.del(REDIS_KEYS.ROOM_PLAYERS + roomId);
+};
+
 // --- PLAYER ROOM HELPER ---
 export const setRedisPlayerRoom = async (playerId, roomId) => {
   await redisClient.set(REDIS_KEYS.PLAYER_ROOM + playerId, roomId);

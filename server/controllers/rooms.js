@@ -12,6 +12,7 @@ import {
   getRedisRoomPlayers,
   redisCheckAlreadyInRoom,
   redisRemoveFromRoom,
+  deleteRedisRoomPlayers,
 } from "../utils/redisHelper.js";
 
 export const createRoom = async (playerId, creatorName) => {
@@ -96,24 +97,25 @@ export const removeFromRoom = async (playerId, roomId, playerIdToRemove) => {
   const removedSocketId = await getRedisPlayerSocket(playerIdToRemove);
   const players = await getRoomPlayers(roomId);
 
-  const updatedRoom = { ...room, players };
-  return { success: true, room: updatedRoom, removedSocketId };
+  const roomWithPlayers = { ...room, players };
+  return { success: true, room: roomWithPlayers, removedSocketId };
 };
 
 export const deleteRoom = async (playerId, roomId) => {
   const room = await getRoom(roomId);
   if (!room) return { success: false, message: "Room not found" };
+  const players = await getRoomPlayers(roomId);
 
   // Only creator can delete
   if (playerId !== room.creatorId) {
     return { success: false, message: "Only the creator can delete the room" };
   }
 
-  // Delete room and all player mappings
-  await deleteRedisRoom(roomId);
-  for (const p of room.players) {
-    await deleteRedisPlayerRoom(p.id);
-  }
+  await Promise.all([
+    deleteRedisRoom(roomId),
+    deleteRedisRoomPlayers(roomId),
+    ...players.map((p) => deleteRedisPlayerRoom(p.id)),
+  ]);
 
   return { success: true, message: "Room deleted successfully" };
 };
