@@ -72,7 +72,10 @@ const setupSocketHandlers = (io) => {
         socket.on("getRoomByPlayerId", async () => {
           try {
             const room = await getRoomByPlayerId(playerId);
-            if (!room) return;
+            if (!room) {
+              socket.emit("error", "Player is not in any room");
+              return;
+            }
             socket.join(room.id);
             socket.emit("roomData", room);
           } catch (e) {
