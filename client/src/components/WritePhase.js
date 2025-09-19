@@ -1,7 +1,6 @@
 import { Box, VStack, Heading } from "@chakra-ui/react";
 import TextInput from "./TextInput";
 import ReadyCounter from "./ReadyCounter";
-import { useMemo } from "react";
 import WaitingForOthers from "./WaitingForOthers";
 
 const WritePhase = ({
@@ -11,11 +10,8 @@ const WritePhase = ({
   handleGameStateUpdate,
   isCreator,
   startNextStep,
+  allReady,
 }) => {
-  const allReady = useMemo(
-    () => turn?.readyCount === totalCount,
-    [turn, totalCount]
-  );
   const handleSubmit = (text) => {
     handleGameStateUpdate(text, 1, true);
   };

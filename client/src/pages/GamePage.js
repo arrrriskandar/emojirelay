@@ -29,6 +29,10 @@ const GamePage = () => {
     () => room?.creatorId === playerId,
     [room, playerId]
   );
+  const allReady = useMemo(
+    () => turn?.readyCount === room?.players?.length,
+    [turn, room]
+  );
 
   const fetchGameState = useCallback(() => {
     if (!socket || !currentRoundId) return;
@@ -106,15 +110,32 @@ const GamePage = () => {
           handleGameStateUpdate={handleGameStateUpdate}
           isCreator={isCreator}
           startNextStep={startNextStep}
+          allReady={allReady}
         />
       );
     case "emoji":
       return (
-        <EmojiPhase step={step} totalCount={room.players.length} turn={turn} />
+        <EmojiPhase
+          step={step}
+          totalCount={room.players.length}
+          turn={turn}
+          handleGameStateUpdate={handleGameStateUpdate}
+          isCreator={isCreator}
+          startNextStep={startNextStep}
+          allReady={allReady}
+        />
       );
     case "guess":
       return (
-        <GuessPhase step={step} totalCount={room.players.length} turn={turn} />
+        <GuessPhase
+          step={step}
+          totalCount={room.players.length}
+          turn={turn}
+          handleGameStateUpdate={handleGameStateUpdate}
+          isCreator={isCreator}
+          startNextStep={startNextStep}
+          allReady={allReady}
+        />
       );
     case "review":
       return <RoundReviewPhase round={round} />;
