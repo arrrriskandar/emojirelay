@@ -1,5 +1,5 @@
 import { useRoom } from "../contexts/RoomContext";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import WritePhase from "../components/WritePhase";
 import EmojiPhase from "../components/EmojiPhase";
@@ -24,15 +24,25 @@ const GamePage = () => {
   const [turn, setTurn] = useState();
   const navigate = useNavigate();
 
-  const handleGameStateSuccess = ({ stepData, roundData, turnData }) => {
-    if (stepData) setStep(stepData);
-    if (roundData) setRound(roundData);
-    if (turnData) setTurn(turnData);
-  };
+  const currentRoundId = useMemo(() => room?.rounds?.at(-1), [room]);
+  const isCreator = useMemo(
+    () => room?.creatorId === playerId,
+    [room, playerId]
+  );
 
-  const handleGameStateError = (msg) => {
-    addToast("Error retrieving game state", msg, "error");
-  };
+  const fetchGameState = useCallback(() => {
+    if (!socket || !currentRoundId) return;
+    getGameState(
+      socket,
+      currentRoundId,
+      ({ stepData, roundData, turnData }) => {
+        setStep(stepData);
+        setRound(roundData);
+        setTurn(turnData);
+      },
+      (msg) => addToast("Error retrieving game state", msg, "error")
+    );
+  }, [addToast, currentRoundId, socket]);
 
   useEffect(() => {
     if (loading) return;
@@ -46,15 +56,8 @@ const GamePage = () => {
         navigate("/lobby");
         return;
       }
-    const currentRoundId = room.rounds[room.rounds.length - 1];
-    getGameState(
-      socket,
-      currentRoundId,
-      handleGameStateSuccess,
-      handleGameStateError
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, navigate, room, socket]);
+    fetchGameState();
+  }, [fetchGameState, loading, navigate, room]);
 
   useEffect(() => {
     if (!socket) return;
@@ -63,30 +66,15 @@ const GamePage = () => {
       setTurn(turnData);
     };
     const onNewStepStarted = () => {
-      const currentRoundId = room.rounds[room.rounds.length - 1];
-      getGameState(
-        socket,
-        currentRoundId,
-        handleGameStateSuccess,
-        handleGameStateError
-      );
+      fetchGameState();
     };
     registerGameEvents(socket, onUpdatedGameState, onNewStepStarted);
     return () => unregisterGameEvents(socket);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket, room]);
+  }, [fetchGameState, socket]);
 
-  if (loading) return <>Loading........</>;
+  if (loading) return <>Loading...</>;
   if (!room) return null;
   if (!step) return <>Loading...</>;
-
-  const onUpdateGameStateSuccess = (stepData) => {
-    setStep(stepData);
-  };
-
-  const onUpdateGameStateError = (msg) => {
-    addToast("Error updating game state", msg, "error");
-  };
 
   const handleGameStateUpdate = (value, incrementValue, ready) => {
     updateGameState(
@@ -97,22 +85,14 @@ const GamePage = () => {
       step.id,
       ready,
       value,
-      onUpdateGameStateSuccess,
-      onUpdateGameStateError
+      (stepData) => setStep(stepData),
+      (msg) => addToast("Error updating game state", msg, "error")
     );
   };
 
-  const onStartNextStepError = (msg) => {
-    addToast("Error starting next step", msg, "error");
-  };
-
   const startNextStep = () => {
-    updateTurn(
-      socket,
-      room.id,
-      turn.id,
-      room.settings.turnDuration,
-      onStartNextStepError
+    updateTurn(socket, room.id, turn.id, room.settings.turnDuration, (msg) =>
+      addToast("Error starting next step", msg, "error")
     );
   };
 
@@ -124,7 +104,7 @@ const GamePage = () => {
           totalCount={room.players.length}
           turn={turn}
           handleGameStateUpdate={handleGameStateUpdate}
-          isCreator={room.creatorId === playerId}
+          isCreator={isCreator}
           startNextStep={startNextStep}
         />
       );

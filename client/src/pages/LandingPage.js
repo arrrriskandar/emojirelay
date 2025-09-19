@@ -10,21 +10,20 @@ const LandingPage = () => {
   const { socket } = useSocket();
   const { addToast } = useToast();
 
-  const onSuccess = () => {
-    addToast(
-      "Room created",
-      "Your room is ready for player. Invite players by sharing the link.",
-      "success"
-    );
-    navigate("/lobby");
-  };
-
-  const onError = (msg) => {
-    addToast("Error creating room", msg, "error");
-  };
-
   const handleCreate = (name) => {
-    createRoom(socket, name, onSuccess, onError);
+    createRoom(
+      socket,
+      name,
+      () => {
+        addToast(
+          "Room created",
+          "Your room is ready for player. Invite players by sharing the link.",
+          "success"
+        );
+        navigate("/lobby");
+      },
+      (msg) => addToast("Error creating room", msg, "error")
+    );
   };
 
   return (

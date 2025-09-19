@@ -26,25 +26,27 @@ const JoinPage = () => {
           navigate("/");
         }
       } catch (e) {
-        console.log(e);
         navigate("/");
       }
     };
     verifyRoom();
   }, [socket, roomId, navigate, addToast]);
-  const onSuccess = () => {
-    addToast(
-      "Room joined successfully",
-      "You have joined the room successfully.",
-      "success"
-    );
-    navigate("/lobby");
-  };
-  const onError = (msg) => {
-    addToast("Error joining room", msg, "error");
-  };
+
   const handleCreate = (name) => {
-    joinRoom(socket, roomId, name, onSuccess, onError);
+    joinRoom(
+      socket,
+      roomId,
+      name,
+      () => {
+        addToast(
+          "Room joined successfully",
+          "You have joined the room successfully.",
+          "success"
+        );
+        navigate("/lobby");
+      },
+      (msg) => addToast("Error joining room", msg, "error")
+    );
   };
 
   return (

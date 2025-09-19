@@ -11,7 +11,7 @@ import { useRoom } from "../contexts/RoomContext";
 import { VStack, Box, Heading, Text, Button } from "@chakra-ui/react";
 import GameModeSelector from "../components/GameModeSelector";
 import PlayerList from "../components/PlayerList";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../contexts/ToastContext";
 import { createLobbyListeners } from "../utils/lobbyListeners";
 
@@ -21,6 +21,15 @@ const LobbyPage = () => {
   const { room, setRoom, loading, setPlayerName } = useRoom();
   const { addToast } = useToast();
   const [turnDuration, setTurnDuration] = useState(60000);
+
+  const isCreator = useMemo(
+    () => room?.creatorId === playerId,
+    [room, playerId]
+  );
+  const link = useMemo(
+    () => `${window.location.origin}/join/${room?.id}`,
+    [room?.id]
+  );
 
   useEffect(() => {
     if (!loading && !room) navigate("/");
@@ -45,32 +54,23 @@ const LobbyPage = () => {
   if (loading) return <div>Loading...</div>;
   if (!room) return null; // in case it's null during render
 
-  const link = `${window.location.origin}/join/${room.id}`;
-  const isCreator = room.creatorId === playerId;
-
-  const onRemovePlayerError = (msg) => {
-    addToast("Failed to remove player", msg, "error");
-  };
-
-  const onDeleteRoomError = (msg) => {
-    addToast("Failed to delete room", msg, "error");
-  };
-
-  const onStartGameError = (msg) => {
-    addToast("Failed to start game", msg, "error");
-  };
-
   const handleStartGame = () => {
-    startGame(socket, room.id, room.players, turnDuration, onStartGameError);
+    startGame(socket, room.id, room.players, turnDuration, (msg) =>
+      addToast("Failed to start game", msg, "error")
+    );
   };
 
   const handleRemovePlayer = (playerIdToRemove) => {
-    removeFromRoom(socket, room.id, playerIdToRemove, onRemovePlayerError);
+    removeFromRoom(socket, room.id, playerIdToRemove, (msg) =>
+      addToast("Failed to remove player", msg, "error")
+    );
   };
 
   const handleDeleteRoom = () => {
     if (window.confirm("Are you sure you want to delete the room?")) {
-      deleteRoom(socket, room.id, onDeleteRoomError);
+      deleteRoom(socket, room.id, (msg) =>
+        addToast("Failed to delete room", msg, "error")
+      );
     }
   };
 
@@ -119,7 +119,7 @@ const LobbyPage = () => {
           Players waiting:
         </Text>
         <PlayerList
-          players={room.players}
+          players={room?.players}
           creatorId={room.creatorId}
           isCreator={isCreator}
           onRemove={handleRemovePlayer}
